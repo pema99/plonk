@@ -11,6 +11,13 @@ let arrayP =
     (one ']')
     |>> JSONArray
 ```
+Here is another example, this time parsing JSON boolean literals.
+```fsharp
+let boolP = 
+  (stringP "true" <|> stringP "false")
+    |>> System.Boolean.Parse
+    |>> JSONBool
+```
 
 # Should you use this?
 Probably not. If you are looking for a production ready parser combinator framework for F#, check out FParsec, which is based on the famous Parsec library from Haskell.
