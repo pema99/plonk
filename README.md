@@ -3,7 +3,7 @@ This is Plonk, son of Gunk. Plonk is a small F# parser combinator library which 
 
 # Show me some code.
 Here is a little snippet showing a simple combinator which parses a JSON array. This code is ripped straight out of the example project in the examples folder.
-```
+```fsharp
 let arrayP =
   between
     (one '[') 
