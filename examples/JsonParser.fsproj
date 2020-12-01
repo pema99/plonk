@@ -6,8 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="../src/Util.fs" />
     <Compile Include="../src/State.fs" />
     <Compile Include="../src/Combinator.fs" />
+    <Compile Include="../src/Common.fs" />
     <Compile Include="JsonParser.fs" />
   </ItemGroup>
 

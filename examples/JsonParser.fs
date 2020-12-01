@@ -1,34 +1,7 @@
 module JsonParser
 
 open Combinator
-
-// Combinator data source which reads a string one character at a time
-type TextCombinatorState =
-  { Source: string
-    Line: int
-    Column: int }
-  interface CombinatorState<char> with
-    member this.Peek = com {
-      if this.Source.Length > 0 then
-        return this.Source.[0]
-      else
-        return! fail()
-    }
-    member this.Item = com {
-      if this.Source.Length > 0 then
-        let res = this.Source.[0]
-        let updated = { this with
-                          Source = this.Source.[1..]
-                          Line = if res = '\n' then this.Line + 1 else this.Line
-                          Column = if res = '\n' then 1 else this.Column + 1}
-        do! com.set (updated :> CombinatorState<char>)
-        return res
-      else
-        return! fail()
-    }
-
-// Type alias for text combinator
-type TextCom<'T> = Com<'T, char>
+open Common
 
 // JSON AST
 type JSONTree =
@@ -103,15 +76,11 @@ termPImpl :=
   <|> arrayP
   <* whitespace
 
-// Load in some JSON
-let jsonDataSource = {
-    Source = System.IO.File.ReadAllText("test.json")
-    Line = 1
-    Column = 0
-}
+// Load in some JSON, using the builtin text parser data source located in src/Common.fs
+let jsonDataSource = mkMultiLineParser (System.IO.File.ReadAllText("test.json"))
 
 // Parse it and show the result
 let result, state = objectP jsonDataSource 
 match result with
-| Success v -> printf "%A" v
-| _ -> printf "Parsing failure. State: %A" state
+| Success v -> printfn "%A" v
+| _ -> printfn "Parsing failure. State: %A" state
