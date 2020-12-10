@@ -122,10 +122,16 @@ let ( >>= ) (m: Com<'T, 'S>) (f: 'T -> Com<'U, 'S>) : Com<'U, 'S> =
 let just (a: 'T) : Com<'T, 'S> =
   com.Return a
 
-let join (m1: Com<'T, 'S>) (m2: Com<'T, 'S>) : Com<'T, 'S> = state {
+let joinl (m1: Com<'T, 'S>) (m2: Com<'T, 'S>) : Com<'T, 'S> = state {
     let! a = m1
     let! b = m2
     return joinResult a b
+}
+
+let joinr (m1: Com<'T, 'S>) (m2: Com<'T, 'S>) : Com<'T, 'S> = state {
+    let! a = m1
+    let! b = m2
+    return joinResult b a
 }
 
 let fail () : Com<'T, 'S> =
