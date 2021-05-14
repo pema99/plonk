@@ -222,13 +222,13 @@ let declParser() : Com<'T, 'S> * Com<'T, 'S> ref =
 let implParser decl impl =
   decl := impl
 
-//let chainL (p: Com<'T>) (op: Com<'T -> 'T -> 'T>) : Com<'T> = com {
-//  let! f = op
-//  let! first = p 
-//  let rec loop prev = state {
-//    match! p with
-//    | Success curr -> return! loop (f prev curr)
-//    | Failure -> return Success prev
-//  }
-//  return! loop first
-//}
+let chainL1 (p: Com<'T, 'S>) (op: Com<'T -> 'T -> 'T, 'S>) : Com<'T, 'S> = com {
+  let! f = op
+  let! first = p 
+  let rec loop prev = state {
+    match! p with
+    | Success curr -> return! loop (f prev curr)
+    | Failure -> return Success prev
+  }
+  return! loop first
+}
