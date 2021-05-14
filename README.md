@@ -21,6 +21,9 @@ let boolP =
     |>> JSONBool
 ```
 
+Another example parsing lambda calculus here:
+https://gist.github.com/pema99/d17ece0d58663765f1c46550f5a8a21a
+
 # Should you use this?
 Probably not. If you are looking for a production ready parser combinator framework for F#, check out FParsec, which is based on the famous Parsec library from Haskell.
 
