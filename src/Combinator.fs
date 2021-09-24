@@ -221,13 +221,6 @@ let lookAhead (p: Com<'T, 'S>) : Com<'T, 'S> =
     | Success _ -> nt, s
     | _ -> nt, s
 
-let declParser() : Com<'T, 'S> * Com<'T, 'S> ref =
-  let decl = ref (fail())
-  (fun s -> (!decl) s), decl
-
-let implParser decl impl =
-  decl := impl
-
 let chainL1 (p: Com<'T, 'S>) (op: Com<'T -> 'T -> 'T, 'S>) : Com<'T, 'S> = com {
   let! first = p 
   let rec loop prev = state {
@@ -237,3 +230,20 @@ let chainL1 (p: Com<'T, 'S>) (op: Com<'T -> 'T -> 'T, 'S>) : Com<'T, 'S> = com {
   }
   return! loop first
 }
+
+let eof : Com<unit, 'S> =
+  fun s ->
+    let nt, _ = look s
+    match nt with
+    | Success _ -> Failure, s
+    | _ -> Success (), s
+
+let delete (p: Com<'T, 'S>) : Com<unit, 'S> =
+  p *> just ()
+
+let declParser() : Com<'T, 'S> * Com<'T, 'S> ref =
+  let decl = ref (fail())
+  (fun s -> (!decl) s), decl
+
+let implParser decl impl =
+  decl := impl
