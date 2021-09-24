@@ -152,7 +152,7 @@ let many (v: Com<'T, 'S>) : Com<'T list, 'S> = com {
 
 let many1 (v: Com<'T, 'S>) : Com<'T list, 'S> = com {
   let! res = many v
-  if res.Length = 0 then return! fail()
+  if List.isEmpty res then return! fail()
   else return res
 }
 
@@ -201,12 +201,18 @@ let eatWhile1 pred : Com<'T list, 'T> =
 let eatWhile pred : Com<'T list, 'T> =
   many (satisfy pred)
 
+let choice (lst: Com<'T, 'S> list) : Com<'T, 'S> =
+  List.fold (<|>) (fail()) lst 
+
 let attempt (p: Com<'T, 'S>) : Com<'T, 'S> = 
   fun s ->
     let nt, ns = p s
     match nt with
     | Success _ -> nt, ns
     | _ -> nt, s
+
+let guard (pred: 'T -> bool) (p: Com<'T, 'S>) : Com<'T, 'S> =
+  p >>= fun s -> if pred s then just s else fail()
 
 let lookAhead (p: Com<'T, 'S>) : Com<'T, 'S> = 
   fun s ->
@@ -223,11 +229,10 @@ let implParser decl impl =
   decl := impl
 
 let chainL1 (p: Com<'T, 'S>) (op: Com<'T -> 'T -> 'T, 'S>) : Com<'T, 'S> = com {
-  let! f = op
   let! first = p 
   let rec loop prev = state {
-    match! p with
-    | Success curr -> return! loop (f prev curr)
+    match! op <+> p with
+    | Success (f, curr) -> return! loop (f prev curr)
     | Failure -> return Success prev
   }
   return! loop first
