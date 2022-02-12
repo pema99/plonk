@@ -231,6 +231,19 @@ let chainL1 (p: Com<'T, 'S>) (op: Com<'T -> 'T -> 'T, 'S>) : Com<'T, 'S> = com {
   return! loop first
 }
 
+let chainR1 (p: Com<'T, 'S>) (op: Com<'T -> 'T -> 'T, 'S>) : Com<'T, 'S> = com {
+  let rec loop prev = state {
+    match! op <+> scan with
+    | Success (f, curr) -> return Success (f prev curr)
+    | Failure -> return Success prev
+    }
+  and scan = com {
+    let! first = p 
+    return! loop first
+    }
+  return! scan
+}
+
 let eof : Com<unit, 'S> =
   fun s ->
     let nt, _ = look s
