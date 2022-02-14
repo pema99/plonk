@@ -159,6 +159,9 @@ let many1 (v: Com<'T, 'S>) : Com<'T list, 'S> = com {
 let opt (p: Com<'T, 'S>) : Com<'T option, 'S> =
   (p |>> Some) <|> just None
 
+let maybe (p: Com<'T, 'S>) : Com<bool, 'S> =
+  (p *> just true) <|> just false
+
 let between (l: Com<'T, 'S>) (v: Com<'U, 'S>) (r: Com<'V, 'S>) : Com<'U, 'S> =
   l *> v <* r
 
