@@ -74,3 +74,30 @@ let mkSeqParser seq = {
   Sequence = seq
   Peeked = None
 }
+
+// Parser for arrays of data
+type ArrayCombinatorState<'t> =
+  { Toks: 't []
+    Offset: int }
+  interface CombinatorState<'t> with
+    member this.Peek = com {
+      if this.Offset < this.Toks.Length then
+        return this.Toks.[this.Offset]
+      else
+        return! fail()
+    }
+    member this.Item = com {
+      if this.Offset < this.Toks.Length then
+        let res = this.Toks.[this.Offset]
+        let updated = { this with
+                          Offset = this.Offset + 1 }
+        do! com.set (updated :> CombinatorState<'t>)
+        return res
+      else
+        return! fail()
+    }
+
+let mkArrayParser toks = {
+  Toks = toks
+  Offset = 0
+}

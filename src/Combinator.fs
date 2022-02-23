@@ -168,6 +168,10 @@ let between (l: Com<'T, 'S>) (v: Com<'U, 'S>) (r: Com<'V, 'S>) : Com<'U, 'S> =
 let within (w: Com<'T, 'S>) (v: Com<'U, 'S>) : Com<'U, 'S> =
   between w v w
 
+let sepBy2 (p: Com<'T, 'S>) (sep: Com<'U, 'S>) : Com<'T list, 'S> =
+  p <+> (sep *> p) <+> many (sep *> p)
+  |>> fun ((a, b), c) -> a :: b :: c
+
 let sepBy1 (p: Com<'T, 'S>) (sep: Com<'U, 'S>) : Com<'T list, 'S> =
   p <+> many (sep *> p)
   |>> List.Cons
