@@ -12,9 +12,9 @@ type CombinatorResult<'T> =
   | FailureWith of CombinatorError
   | CompoundFailure of CombinatorError list 
 
-let joinResult a b =
+let joinResult joiner a b =
   match a, b with
-  | Success _, Success _                 -> a
+  | Success l, Success r                 -> Success (joiner l r)
   | Success _, Failure
   | Success _, FailureWith _
   | Success _, CompoundFailure _         -> b 
@@ -125,13 +125,13 @@ let just (a: 'T) : Com<'T, 'S> =
 let joinl (m1: Com<'T, 'S>) (m2: Com<'T, 'S>) : Com<'T, 'S> = state {
     let! a = m1
     let! b = m2
-    return joinResult a b
+    return joinResult (fun a _ -> a) a b
 }
 
 let joinr (m1: Com<'T, 'S>) (m2: Com<'T, 'S>) : Com<'T, 'S> = state {
     let! a = m1
     let! b = m2
-    return joinResult b a
+    return joinResult (fun _ b -> b) a b
 }
 
 let fail () : Com<'T, 'S> =
