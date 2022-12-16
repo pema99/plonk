@@ -31,7 +31,7 @@ let joinResult joiner a b =
   | CompoundFailure l, FailureWith r     -> CompoundFailure (r :: l)
   | CompoundFailure l, CompoundFailure r -> CompoundFailure (l @ r)
 
-let copyFailure a =
+let inline copyFailure a =
   match a with
   | Success _         -> Failure
   | Failure           -> Failure
@@ -45,29 +45,29 @@ type CombinatorState<'T> =
 and Com<'T, 'S> = StateM<CombinatorResult<'T>, CombinatorState<'S>>
 
 type CombinatorBuilder() =
-  member this.Return (v: 'T) : Com<'T, 'S> =
+  member inline this.Return (v: 'T) : Com<'T, 'S> =
     fun s -> Success v, s
-  member this.ReturnFrom (m: Com<'T, 'S>) : Com<'T, 'S> =
+  member inline this.ReturnFrom ([<InlineIfLambda>] m: Com<'T, 'S>) : Com<'T, 'S> =
     m
-  member this.Zero () : Com<unit, 'S> =
+  member inline this.Zero () : Com<unit, 'S> =
     this.Return ()
-  member this.Bind (m: Com<'T, 'S>, f: 'T -> Com<'U, 'S>) : Com<'U, 'S> =
+  member inline this.Bind ([<InlineIfLambda>] m: Com<'T, 'S>, [<InlineIfLambda>] f: 'T -> Com<'U, 'S>) : Com<'U, 'S> =
     fun s ->
       let a, n = m s
       match a with
       | Success v -> (f v) n
       | err -> copyFailure err, n
-  member this.Combine (m1: Com<'T, 'S>, m2: Com<'U, 'S>) : Com<'U, 'S> =
+  member inline this.Combine ([<InlineIfLambda>] m1: Com<'T, 'S>, [<InlineIfLambda>] m2: Com<'U, 'S>) : Com<'U, 'S> =
     fun s ->
       let a, n = m1 s
       match a with
       | Success _ -> m2 n
       | err -> copyFailure err, n
-  member this.Delay (f: unit -> Com<'T, 'S>): Com<'T, 'S> =
+  member inline this.Delay ([<InlineIfLambda>] f: unit -> Com<'T, 'S>): Com<'T, 'S> =
     this.Bind (this.Return (), f)
-  member this.get() =
+  member inline this.get() =
     fun s -> Success s, s
-  member this.set v =
+  member inline this.set v =
     fun _ -> Success (), v
 
 let com = CombinatorBuilder()
@@ -78,57 +78,57 @@ let look : Com<'T, 'T> =
 let item : Com<'T, 'T> =
   fun s -> s.Item s
 
-let ( <|> ) (m1: Com<'T, 'S>) (m2: Com<'T, 'S>) : Com<'T, 'S> = state {  
+let inline ( <|> ) ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'T, 'S>) : Com<'T, 'S> = state {  
   match! m1 with
   | Success v -> return Success v
   | _ -> return! m2
 }
 
-let ( <*> ) (f: Com<'T -> 'U, 'S>) (m: Com<'T, 'S>) : Com<'U, 'S> = com {
+let inline ( <*> ) ([<InlineIfLambda>] f: Com<'T -> 'U, 'S>) ([<InlineIfLambda>] m: Com<'T, 'S>) : Com<'U, 'S> = com {
   let! a = f
   let! b = m
   return a b
 }
 
-let ( <!> ) (f: 'T -> 'U) (m: Com<'T, 'S>) : Com<'U, 'S> = com {
+let inline ( <!> ) ([<InlineIfLambda>] f: 'T -> 'U) ([<InlineIfLambda>] m: Com<'T, 'S>) : Com<'U, 'S> = com {
   let! v = m
   return f v
 }
 
-let ( |>> ) (m: Com<'T, 'S>) (f: 'T -> 'U) : Com<'U, 'S> =
+let inline ( |>> ) ([<InlineIfLambda>] m: Com<'T, 'S>) ([<InlineIfLambda>] f: 'T -> 'U) : Com<'U, 'S> =
   f <!> m
 
-let ( <* ) (m1: Com<'T, 'S>) (m2: Com<'U, 'S>) : Com<'T, 'S> = com {
+let inline ( <* ) ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'U, 'S>) : Com<'T, 'S> = com {
   let! a = m1
   let! b = m2
   return a
 }
  
-let ( *> ) (m1: Com<'T, 'S>) (m2: Com<'U, 'S>) : Com<'U, 'S> = com {
+let inline ( *> ) ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'U, 'S>) : Com<'U, 'S> = com {
   let! a = m1
   let! b = m2
   return b
 }
 
-let ( <+> ) (m1: Com<'T, 'S>) (m2: Com<'U, 'S>) : Com<'T * 'U, 'S> = com {
+let inline ( <+> ) ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'U, 'S>) : Com<'T * 'U, 'S> = com {
   let! a = m1
   let! b = m2
   return a, b
 }
 
-let ( >>= ) (m: Com<'T, 'S>) (f: 'T -> Com<'U, 'S>) : Com<'U, 'S> =
+let inline ( >>= ) ([<InlineIfLambda>] m: Com<'T, 'S>) ([<InlineIfLambda>] f: 'T -> Com<'U, 'S>) : Com<'U, 'S> =
   com.Bind (m, f)
 
-let just (a: 'T) : Com<'T, 'S> =
+let inline just (a: 'T) : Com<'T, 'S> =
   com.Return a
 
-let joinl (m1: Com<'T, 'S>) (m2: Com<'T, 'S>) : Com<'T, 'S> = state {
+let inline joinl ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'T, 'S>) : Com<'T, 'S> = state {
     let! a = m1
     let! b = m2
     return joinResult (fun a _ -> a) a b
 }
 
-let joinr (m1: Com<'T, 'S>) (m2: Com<'T, 'S>) : Com<'T, 'S> = state {
+let inline joinr ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'T, 'S>) : Com<'T, 'S> = state {
     let! a = m1
     let! b = m2
     return joinResult (fun _ b -> b) a b
