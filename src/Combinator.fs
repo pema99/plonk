@@ -140,7 +140,7 @@ let fail () : Com<'T, 'S> =
 let failWith msg : Com<'T, 'S> =
   fun s -> FailureWith msg, s
 
-let many (v: Com<'T, 'S>) : Com<'T list, 'S> = com {
+let inline many ([<InlineIfLambda>] v: Com<'T, 'S>) : Com<'T list, 'S> = com {
   let rec loop acc = state {
     match! v with
     | Success v -> return! loop (v :: acc)
@@ -150,7 +150,7 @@ let many (v: Com<'T, 'S>) : Com<'T list, 'S> = com {
   return res
 }
 
-let many1 (v: Com<'T, 'S>) : Com<'T list, 'S> = com {
+let inline many1 ([<InlineIfLambda>] v: Com<'T, 'S>) : Com<'T list, 'S> = com {
   let! res = many v
   if List.isEmpty res then return! fail()
   else return res
