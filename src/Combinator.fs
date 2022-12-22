@@ -100,12 +100,12 @@ let inline ( |>> ) ([<InlineIfLambda>] m: Com<'T, 'S>) ([<InlineIfLambda>] f: 'T
 
 let inline ( <* ) ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'U, 'S>) : Com<'T, 'S> = com {
   let! a = m1
-  let! b = m2
+  let! _ = m2
   return a
 }
  
 let inline ( *> ) ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'U, 'S>) : Com<'U, 'S> = com {
-  let! a = m1
+  let! _ = m1
   let! b = m2
   return b
 }
