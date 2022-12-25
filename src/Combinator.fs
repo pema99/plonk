@@ -9,34 +9,13 @@ type CombinatorError = string * (int * int)
 type CombinatorResult<'T> =
   | Success of 'T
   | Failure
-  | FailureWith of CombinatorError
-  | CompoundFailure of CombinatorError list 
-
-let joinResult joiner a b =
-  match a, b with
-  | Success l, Success r                 -> Success (joiner l r)
-  | Success _, Failure
-  | Success _, FailureWith _
-  | Success _, CompoundFailure _         -> b 
-  | Failure, Success _         
-  | Failure, Failure                     -> Failure
-  | Failure, FailureWith _
-  | Failure, CompoundFailure _           -> b
-  | FailureWith _, Success _
-  | FailureWith _, Failure               -> a
-  | FailureWith l, FailureWith r         -> CompoundFailure [l; r] 
-  | FailureWith l, CompoundFailure r     -> CompoundFailure (l :: r)
-  | CompoundFailure _, Success _
-  | CompoundFailure _, Failure           -> a
-  | CompoundFailure l, FailureWith r     -> CompoundFailure (r :: l)
-  | CompoundFailure l, CompoundFailure r -> CompoundFailure (l @ r)
+  | Fatal
 
 let inline copyFailure a =
   match a with
   | Success _         -> Failure
   | Failure           -> Failure
-  | FailureWith e     -> FailureWith e
-  | CompoundFailure e -> CompoundFailure e
+  | Fatal             -> Fatal
 
 type CombinatorState<'T> =
   abstract member Peek : Com<'T, 'T>
@@ -81,7 +60,8 @@ let item : Com<'T, 'T> =
 let inline ( <|> ) ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'T, 'S>) : Com<'T, 'S> = state {  
   match! m1 with
   | Success v -> return Success v
-  | _ -> return! m2
+  | Fatal -> return Fatal
+  | Failure -> return! m2
 }
 
 let inline ( <*> ) ([<InlineIfLambda>] f: Com<'T -> 'U, 'S>) ([<InlineIfLambda>] m: Com<'T, 'S>) : Com<'U, 'S> = com {
@@ -122,29 +102,33 @@ let inline ( >>= ) ([<InlineIfLambda>] m: Com<'T, 'S>) ([<InlineIfLambda>] f: 'T
 let inline just (a: 'T) : Com<'T, 'S> =
   com.Return a
 
-let inline joinl ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'T, 'S>) : Com<'T, 'S> = state {
-    let! a = m1
-    let! b = m2
-    return joinResult (fun a _ -> a) a b
-}
-
-let inline joinr ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'T, 'S>) : Com<'T, 'S> = state {
-    let! a = m1
-    let! b = m2
-    return joinResult (fun _ b -> b) a b
-}
-
 let fail () : Com<'T, 'S> =
   fun s -> Failure, s
 
-let failWith msg : Com<'T, 'S> =
-  fun s -> FailureWith msg, s
+let fatal () : Com<'T, 'S> =
+  fun s -> Fatal, s
+
+let must (p: Com<'T, 'S>) : Com<'T, 'S> =
+  p <|> fatal()
+
+let inline ( <!* ) ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'U, 'S>) : Com<'T, 'S> =
+    m1 <* must m2
+
+let inline ( *!> ) ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'U, 'S>) : Com<'U, 'S> =
+    must m1 *> m2
+
+let inline ( <+!> ) ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'U, 'S>) : Com<'T * 'U, 'S> =
+    m1 <+> must m2
+
+let inline ( <!+> ) ([<InlineIfLambda>] m1: Com<'T, 'S>) ([<InlineIfLambda>] m2: Com<'U, 'S>) : Com<'T * 'U, 'S> =
+    must m1 <+> m2
 
 let inline many ([<InlineIfLambda>] v: Com<'T, 'S>) : Com<'T list, 'S> = com {
   let rec loop acc = state {
     match! v with
     | Success v -> return! loop (v :: acc)
-    | _ -> return Success (List.rev acc)
+    | Fatal -> return Fatal
+    | Failure -> return Success (List.rev acc)
   }
   let! res = loop []
   return res
@@ -193,6 +177,7 @@ let check (pred: 'T -> bool) : Com<bool, 'T> = state {
     if pred v then
       return Success true
     else return Success false
+  | Fatal -> return Success false
   | Failure -> return Success false
 }
 
@@ -233,6 +218,7 @@ let chainL1 (p: Com<'T, 'S>) (op: Com<'T -> 'T -> 'T, 'S>) : Com<'T, 'S> = com {
   let rec loop prev = state {
     match! op <+> p with
     | Success (f, curr) -> return! loop (f prev curr)
+    | Fatal -> return Fatal
     | Failure -> return Success prev
   }
   return! loop first
@@ -242,6 +228,7 @@ let chainR1 (p: Com<'T, 'S>) (op: Com<'T -> 'T -> 'T, 'S>) : Com<'T, 'S> = com {
   let rec loop prev = state {
     match! op <+> scan with
     | Success (f, curr) -> return Success (f prev curr)
+    | Fatal -> return Fatal
     | Failure -> return Success prev
     }
   and scan = com {
